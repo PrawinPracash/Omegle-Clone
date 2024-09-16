@@ -43,6 +43,7 @@
   cursor: pointer;
   width: 20px;
   color: black;
+  margin-left: 60px;
 }
 .input-container{
   display: flex;

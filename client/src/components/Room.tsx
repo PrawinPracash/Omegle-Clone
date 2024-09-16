@@ -2,15 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import "./index.css";
 import MicNoneIcon from "@mui/icons-material/MicNone";
 import MicOffIcon from "@mui/icons-material/MicOff";
-
+import VideocamIcon from "@mui/icons-material/Videocam";
+import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 function Room() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const localAudioRef = useRef<HTMLAudioElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [isMicOn, setIsMicOn] = useState<boolean>(true);
+  const [isVideoOn, setIsVideoOn] = useState<boolean>(true);
   const websocket = new WebSocket("ws://localhost:8000");
-  console.log(localVideoRef, remoteVideoRef);
   const pc = new RTCPeerConnection({
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
   });
@@ -21,10 +23,12 @@ function Room() {
         video: true,
         audio: true,
       });
+
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
         localVideoRef.current.play();
       }
+      setLocalStream(stream);
     } catch (error) {
       console.error("Error accessing local camera:", error);
     }
@@ -36,6 +40,7 @@ function Room() {
       pc.onnegotiationneeded = async () => {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
+        console.log("Calling create answer event");
         const event = JSON.stringify({
           type: "createAnswer",
           sdp: offer,
@@ -54,6 +59,11 @@ function Room() {
         video: true,
         audio: true,
       });
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+        localVideoRef.current.play();
+      }
+      setLocalStream(stream);
       stream.getTracks().forEach((track) => {
         pc?.addTrack(track);
       });
@@ -73,7 +83,6 @@ function Room() {
           }
         } else if (track.kind === "audio") {
           audioStream.addTrack(track);
-
           // Handle audio stream
           if (remoteAudioRef.current) {
             remoteAudioRef.current.srcObject = audioStream;
@@ -93,7 +102,6 @@ function Room() {
         await pc.setRemoteDescription(sdp);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-
         const event = JSON.stringify({
           type: "answerCreated",
           sdp: answer,
@@ -110,7 +118,13 @@ function Room() {
       // for sending tracks
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
+        audio: true,
       });
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+        localVideoRef.current.play();
+      }
+      setLocalStream(stream);
       stream.getTracks().forEach((track) => {
         pc?.addTrack(track);
       });
@@ -119,7 +133,6 @@ function Room() {
         console.log("Got tracks", remoteVideoRef.current);
         const videoStream = new MediaStream();
         const audioStream = new MediaStream();
-
         const { track } = event;
         if (track.kind === "video") {
           videoStream.addTrack(track);
@@ -144,6 +157,16 @@ function Room() {
   }
 
   useEffect(() => {
+    const handleBeforeUnload = (event: any) => {
+      console.log(remoteVideoRef.current)
+      websocket.send(
+        JSON.stringify({
+          type: "userLeft",
+        })
+      );
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
     websocket.onopen = (event) => {
       websocket.send(
         JSON.stringify({
@@ -151,24 +174,23 @@ function Room() {
         })
       );
     };
-    //setWebSocket(ws);
     const eventConfig = async () => {
       await localCamAccess();
       websocket.onmessage = async (event: any) => {
         const data = JSON.parse(event.data);
         console.log("Got message =>", data);
         const type = data.type;
-
         switch (type) {
           case "createOffer":
+            console.log("createOffer event");
             await handleCreateOffer(pc);
             break;
           case "createAnswer":
+            console.log("createAnswer event");
             await handleCreateAnswer(data.sdp);
             break;
           case "iceCandidate":
-            console.log(data.candidate);
-            await pc.addIceCandidate(data.candidate);
+            if (pc.remoteDescription) await pc.addIceCandidate(data.candidate);
             break;
           case "answerCreated":
             console.log("Answer created event");
@@ -178,13 +200,32 @@ function Room() {
       };
     };
     eventConfig();
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, []);
 
-  function handleMicButton() {
-    if (loc.current) {
-      localAudioRef.current.muted = !localAudioRef.current.muted; // Toggle the mute state
-      setIsMicOn(!isMicOn);
+  async function handleMicButton() {
+    if (!localStream) return;
+    const duplicateStream = localStream;
+    if (!isMicOn) {
+      duplicateStream.getAudioTracks()[0].enabled = true;
+    } else {
+      duplicateStream.getAudioTracks()[0].enabled = false;
     }
+    setLocalStream(duplicateStream);
+    setIsMicOn(!isMicOn);
+  }
+  async function handleVideoButton() {
+    if (!localStream) return;
+    const duplicateStream = localStream;
+    if (!isVideoOn) {
+      duplicateStream.getVideoTracks()[0].enabled = true;
+    } else {
+      duplicateStream.getVideoTracks()[0].enabled = false;
+    }
+    setLocalStream(duplicateStream);
+    setIsVideoOn(!isVideoOn);
   }
 
   return (
@@ -194,7 +235,7 @@ function Room() {
           <video ref={localVideoRef} autoPlay muted></video>
         </div>
         <div className="video-box">
-          {remoteVideoRef.current ? (
+          {remoteVideoRef?.current?.srcObject ? (
             <video ref={remoteVideoRef} autoPlay></video>
           ) : (
             <video
@@ -206,7 +247,7 @@ function Room() {
           <audio ref={remoteAudioRef} autoPlay />
         </div>
       </div>
-      {/* <div className="input-container">
+      <div className="input-container">
         <div className="mic-container" onClick={handleMicButton}>
           {isMicOn ? (
             <MicNoneIcon color={"action"} fontSize="large" />
@@ -214,7 +255,14 @@ function Room() {
             <MicOffIcon color={"action"} fontSize="large" />
           )}
         </div>
-      </div> */}
+        <div className="mic-container" onClick={handleVideoButton}>
+          {isVideoOn ? (
+            <VideocamIcon color={"action"} fontSize="large" />
+          ) : (
+            <VideocamOffIcon color={"action"} fontSize="large" />
+          )}
+        </div>
+      </div>
     </>
   );
 }
