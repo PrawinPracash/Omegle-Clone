@@ -6,17 +6,20 @@ const wss = new WebSocket.Server({ port: 8000 }, () => {
 });
 const queue = new Queue<WebSocket>();
 const map: Map<WebSocket, WebSocket> = new Map<WebSocket, WebSocket>();
-let counter = 0;
 const set: Set<WebSocket> = new Set();
 wss.on("connection", (ws) => {
   ws.on("message", (data: any) => {
     const message = JSON.parse(data);
-    console.log("Got message from client ");
+    //console.log("Got message from client ");
     const { type } = message;
     switch (type) {
       case "join":
         console.log("Join event invoked");
         handleJoinEvent(ws);
+        break;
+      case "userLeft":
+        console.log("User left event invoked");
+        handleUserLeftEvent(ws);
         break;
       case "createAnswer":
         console.log("createAnswer event invoked");
@@ -38,29 +41,20 @@ wss.on("connection", (ws) => {
 
 function handleJoinEvent(ws: WebSocket) {
   try {
-    if (queue.size() > 0) {
-      queue.size();
+    if (queue.peek()) {
       const client1 = queue.pop();
-      if (!client1) {
-        if (!set.has(ws)) queue.push(ws);
-        set.add(ws);
-        return;
-      }
-      set.delete(client1);
-      if (client1 == ws) {
-        return;
-      }
+      if(!client1) return;
       const client2 = ws;
+      set.add(client2);
       console.log("Matched the Pair");
       const event = JSON.stringify({
         type: "createOffer",
       });
       client1.send(event);
-      // console.log(client1);
       map.set(client1, client2);
       map.set(client2, client1);
     } else {
-      if (!set.has(ws)) queue.push(ws);
+      queue.push(ws);
       set.add(ws);
     }
   } catch (err: any) {
@@ -68,7 +62,22 @@ function handleJoinEvent(ws: WebSocket) {
   }
 }
 
-function handleCreateAnswerEvent(ws: WebSocket, data: any) {
+function handleUserLeftEvent(ws: WebSocket) {
+  try {
+    if(queue.peek()==ws){
+      queue.pop();
+    }
+    set.delete(ws);
+    const client2 = map.get(ws);
+    if(client2 && set.has(client2)){
+      handleJoinEvent(client2);
+    }
+  } catch (err: any) {
+    console.log("Error in handleIceCandidateEvent function ", err.message);
+  }
+}
+
+async function handleCreateAnswerEvent(ws: WebSocket, data: any) {
   try {
     const { sdp } = data;
     const receiver = map.get(ws);
@@ -82,6 +91,7 @@ function handleCreateAnswerEvent(ws: WebSocket, data: any) {
     });
     console.log("Sending handleCreateAnswerEvent ");
     receiver.send(event);
+    receiver.send(JSON.stringify({msg: "hello"}));
   } catch (err: any) {
     console.log("Error in handleCreateAnswerEvent function ", err.message);
   }
@@ -122,3 +132,9 @@ function handleIceCandidateEvent(ws: WebSocket, data: any) {
     console.log("Error in handleIceCandidateEvent function ", err.message);
   }
 }
+
+async function smalldelay() {
+  await new Promise((resolve) => setTimeout(resolve, 100));
+}
+
+
