@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -22,3 +22,4 @@ jobs:
       run: docker build -t omegle-clone .
     - name: Push docker image
       run: docker push prawinpracash/omgele-clone:latest
+                       
