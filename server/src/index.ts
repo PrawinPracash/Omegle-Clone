@@ -10,7 +10,6 @@ const set: Set<WebSocket> = new Set();
 wss.on("connection", (ws) => {
   ws.on("message", (data: any) => {
     const message = JSON.parse(data);
-    //console.log("Got message from client ");
     const { type } = message;
     switch (type) {
       case "join":
@@ -34,7 +33,7 @@ wss.on("connection", (ws) => {
         handleIceCandidateEvent(ws, message);
       default:
         console.log("Invalid event name");
-        
+
     }
   });
   ws.on("error", (err) => {
