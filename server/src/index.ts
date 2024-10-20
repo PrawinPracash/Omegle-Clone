@@ -33,7 +33,6 @@ wss.on("connection", (ws) => {
         handleIceCandidateEvent(ws, message);
       default:
         console.log("Invalid event name");
-
     }
   });
   ws.on("error", (err) => {
