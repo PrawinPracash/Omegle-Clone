@@ -134,5 +134,8 @@ function handleIceCandidateEvent(ws: WebSocket, data: any) {
   }
 }
 
+async function smalldelay() {
+  await new Promise((resolve) => setTimeout(resolve, 100));
+}
 
 
