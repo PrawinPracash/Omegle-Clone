@@ -24,13 +24,27 @@ function Room() {
         audio: true,
       });
 
+      // Check if the video element reference is valid
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
         localVideoRef.current.play();
       }
+
+      // Save the stream state to use later (e.g., for stopping tracks)
       setLocalStream(stream);
-    } catch (error) {
-      console.error("Error accessing local camera:", error);
+    } catch (error: any) {
+      // Handle specific error cases
+      if (error.name === "NotAllowedError") {
+        console.error(
+          "Permission denied: Camera and microphone access are required."
+        );
+      } else if (error.name === "NotFoundError") {
+        console.error("No camera or microphone found on this device.");
+      } else if (error.name === "OverconstrainedError") {
+        console.error("No media devices meet the specified constraints.");
+      } else {
+        console.error("Error accessing local camera:", error);
+      }
     }
   }
 
