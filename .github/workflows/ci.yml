@@ -23,5 +23,5 @@ jobs:
     - name: Build the Docker image
       run: docker build -t omegle-clone ./server
     - name: Push docker image
-      run: docker push prawinpracash/omgele-clone:latest
+      run: docker push prawinpracash/omegle-clone:latest
                        
