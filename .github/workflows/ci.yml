@@ -1,0 +1,24 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Docker hub login
+      env:
+        DOCKER_USERNAME : ${{secrets.DOCKER_USERNAME}}
+        DOCKER_PASSWORD : ${{secrets.DOCKER_PASSWORD}}
+      run: docker login -u DOCKER_USERNAME -p DOCKER_PASSWORD
+    - name: Build the Docker image
+      run: docker build -t omegle-clone .
+    - name: Push docker image
+      run: docker push prawinpracash/omgele-clone:latest
