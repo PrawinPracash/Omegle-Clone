@@ -32,6 +32,8 @@ wss.on("connection", (ws) => {
       case "iceCandidate":
         console.log("iceCandidate event invoked");
         handleIceCandidateEvent(ws, message);
+      default:
+        console.log("Invalid event name");
     }
   });
   ws.on("error", (err) => {
