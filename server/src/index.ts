@@ -142,9 +142,9 @@ function handleIceCandidateEvent(ws: WebSocket, data: any) {
   }
 }
 
-async function smalldelay() {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-}
+// async function smalldelay() {
+//   await new Promise((resolve) => setTimeout(resolve, 100));
+// }
 
 const PORT = 8000;
 server.listen(PORT, () => {
