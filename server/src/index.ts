@@ -1,9 +1,17 @@
 import WebSocket from "ws";
 import Queue from "./queue";
+import http from "http";
+import express from "express";
+const app = express();
 
-const wss = new WebSocket.Server({ port: 8000 }, () => {
-  console.log("Websocket server running port 8000");
+// Example route
+app.get("/health-check", (req, res) => {
+  res.send("HTTP server is running with WebSocket support");
 });
+
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
 const queue = new Queue<WebSocket>();
 const map: Map<WebSocket, WebSocket> = new Map<WebSocket, WebSocket>();
 const set: Set<WebSocket> = new Set();
@@ -44,7 +52,7 @@ function handleJoinEvent(ws: WebSocket) {
   try {
     if (queue.peek()) {
       const client1 = queue.pop();
-      if(!client1) return;
+      if (!client1) return;
       const client2 = ws;
       set.add(client2);
       console.log("Matched the Pair");
@@ -65,12 +73,12 @@ function handleJoinEvent(ws: WebSocket) {
 
 function handleUserLeftEvent(ws: WebSocket) {
   try {
-    if(queue.peek()==ws){
+    if (queue.peek() == ws) {
       queue.pop();
     }
     set.delete(ws);
     const client2 = map.get(ws);
-    if(client2 && set.has(client2)){
+    if (client2 && set.has(client2)) {
       handleJoinEvent(client2);
     }
   } catch (err: any) {
@@ -92,7 +100,7 @@ async function handleCreateAnswerEvent(ws: WebSocket, data: any) {
     });
     console.log("Sending handleCreateAnswerEvent ");
     receiver.send(event);
-    receiver.send(JSON.stringify({msg: "hello"}));
+    receiver.send(JSON.stringify({ msg: "hello" }));
   } catch (err: any) {
     console.log("Error in handleCreateAnswerEvent function ", err.message);
   }
@@ -138,4 +146,7 @@ async function smalldelay() {
   await new Promise((resolve) => setTimeout(resolve, 100));
 }
 
-
+const PORT = 8000;
+server.listen(PORT, () => {
+  console.log(`HTTP and WebSocket server running on port ${PORT}`);
+});
