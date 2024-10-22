@@ -4,6 +4,8 @@ import MicNoneIcon from "@mui/icons-material/MicNone";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
+import CircularProgress from "@mui/material/CircularProgress";
+
 function Room() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
@@ -11,6 +13,7 @@ function Room() {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [isMicOn, setIsMicOn] = useState<boolean>(true);
   const [isVideoOn, setIsVideoOn] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Loading state
   const websocket = new WebSocket("wss://d1gf6n9vozwhy4.cloudfront.net");
   const pc = new RTCPeerConnection({
     iceServers: [
@@ -187,6 +190,7 @@ function Room() {
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     websocket.onopen = (_event: any) => {
+      setIsLoading(false); 
       websocket.send(
         JSON.stringify({
           type: "join",
@@ -249,39 +253,47 @@ function Room() {
 
   return (
     <>
-      <div className="video-wrapper">
-        <div className="video-box">
-          <video ref={localVideoRef} autoPlay muted></video>
+      {isLoading ? ( // Show spinner while loading
+        <div className="spinner-container">
+          <CircularProgress /> {/* Spinner */}
         </div>
-        <div className="video-box">
-          {remoteVideoRef?.current?.srcObject ? (
-            <video ref={remoteVideoRef} autoPlay></video>
-          ) : (
-            <video
-              className="placeholder"
-              ref={remoteVideoRef}
-              autoPlay
-            ></video>
-          )}
-          <audio ref={remoteAudioRef} autoPlay />
-        </div>
-      </div>
-      <div className="input-container">
-        <div className="mic-container" onClick={handleMicButton}>
-          {isMicOn ? (
-            <MicNoneIcon color={"action"} fontSize="large" />
-          ) : (
-            <MicOffIcon color={"action"} fontSize="large" />
-          )}
-        </div>
-        <div className="mic-container" onClick={handleVideoButton}>
-          {isVideoOn ? (
-            <VideocamIcon color={"action"} fontSize="large" />
-          ) : (
-            <VideocamOffIcon color={"action"} fontSize="large" />
-          )}
-        </div>
-      </div>
+      ) : (
+        <>
+          <div className="video-wrapper">
+            <div className="video-box">
+              <video ref={localVideoRef} autoPlay muted></video>
+            </div>
+            <div className="video-box">
+              {remoteVideoRef?.current?.srcObject ? (
+                <video ref={remoteVideoRef} autoPlay></video>
+              ) : (
+                <video
+                  className="placeholder"
+                  ref={remoteVideoRef}
+                  autoPlay
+                ></video>
+              )}
+              <audio ref={remoteAudioRef} autoPlay />
+            </div>
+          </div>
+          <div className="input-container">
+            <div className="mic-container" onClick={handleMicButton}>
+              {isMicOn ? (
+                <MicNoneIcon color={"action"} fontSize="large" />
+              ) : (
+                <MicOffIcon color={"action"} fontSize="large" />
+              )}
+            </div>
+            <div className="mic-container" onClick={handleVideoButton}>
+              {isVideoOn ? (
+                <VideocamIcon color={"action"} fontSize="large" />
+              ) : (
+                <VideocamOffIcon color={"action"} fontSize="large" />
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
