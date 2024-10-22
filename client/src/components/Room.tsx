@@ -77,6 +77,9 @@ function Room() {
         });
         websocket.send(event);
       };
+      pc.oniceconnectionstatechange = () => {
+        console.log("In offer ICE Connection State:", pc.iceConnectionState);
+      };
       // for sending tracks
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -120,16 +123,19 @@ function Room() {
 
   async function handleCreateAnswer(sdp: any) {
     try {
-      console.log("Inside Handle Create Answer - start :", Date.now());
-      await pc.setRemoteDescription(sdp);
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      const event = JSON.stringify({
-        type: "answerCreated",
-        sdp: answer,
-      });
-      console.log("Inside Handle Create Answer - end :", Date.now());
-      websocket.send(event);
+      pc.onnegotiationneeded = async (_event: any) => {
+        console.log("Inside Handle Create Answer - start :", Date.now());
+        await pc.setRemoteDescription(sdp);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        const event = JSON.stringify({
+          type: "answerCreated",
+          sdp: answer,
+        });
+        console.log("Inside Handle Create Answer - end :", Date.now());
+        websocket.send(event);
+      };
+
       pc.onicecandidate = (iceCandidate) => {
         const event = JSON.stringify({
           type: "iceCandidate",
@@ -137,6 +143,10 @@ function Room() {
         });
         websocket.send(event);
       };
+      pc.oniceconnectionstatechange = () => {
+        console.log("In Answer ICE Connection State:", pc.iceConnectionState);
+      };
+
       // for sending tracks
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
