@@ -6,15 +6,21 @@ import VideocamIcon from "@mui/icons-material/Videocam";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 function Room() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
-  const localAudioRef = useRef<HTMLAudioElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [isMicOn, setIsMicOn] = useState<boolean>(true);
   const [isVideoOn, setIsVideoOn] = useState<boolean>(true);
-  const websocket = new WebSocket("ws://localhost:8000");
+  const websocket = new WebSocket("wss://d1gf6n9vozwhy4.cloudfront.net");
   const pc = new RTCPeerConnection({
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      {
+        urls: "turn:relay1.expressturn.com:3478", // Add 'turn:' scheme
+        username: "efUVY3MRFY44A3OPVO", // Username
+        credential: "ioRkMvu0w13rr0qj", // Password
+      },
+    ],
   });
 
   async function localCamAccess() {
@@ -171,8 +177,7 @@ function Room() {
   }
 
   useEffect(() => {
-    const handleBeforeUnload = (event: any) => {
-      console.log(remoteVideoRef.current)
+    const handleBeforeUnload = (_event: any) => {
       websocket.send(
         JSON.stringify({
           type: "userLeft",
@@ -181,7 +186,7 @@ function Room() {
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-    websocket.onopen = (event) => {
+    websocket.onopen = (_event: any) => {
       websocket.send(
         JSON.stringify({
           type: "join",
