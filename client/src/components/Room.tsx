@@ -120,17 +120,14 @@ function Room() {
 
   async function handleCreateAnswer(sdp: any) {
     try {
-      console.log("Creating answer....", sdp);
-      pc.onnegotiationneeded = async () => {
-        await pc.setRemoteDescription(sdp);
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        const event = JSON.stringify({
-          type: "answerCreated",
-          sdp: answer,
-        });
-        websocket.send(event);
-      };
+      await pc.setRemoteDescription(sdp);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      const event = JSON.stringify({
+        type: "answerCreated",
+        sdp: answer,
+      });
+      websocket.send(event);
       pc.onicecandidate = (iceCandidate) => {
         const event = JSON.stringify({
           type: "iceCandidate",
@@ -186,11 +183,12 @@ function Room() {
           type: "userLeft",
         })
       );
+      pc.close();
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     websocket.onopen = (_event: any) => {
-      setIsLoading(false); 
+      setIsLoading(false);
       websocket.send(
         JSON.stringify({
           type: "join",
