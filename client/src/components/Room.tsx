@@ -120,6 +120,7 @@ function Room() {
 
   async function handleCreateAnswer(sdp: any) {
     try {
+      console.log("Inside Handle Create Answer - start :", Date.now());
       await pc.setRemoteDescription(sdp);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
@@ -127,6 +128,7 @@ function Room() {
         type: "answerCreated",
         sdp: answer,
       });
+      console.log("Inside Handle Create Answer - end :", Date.now());
       websocket.send(event);
       pc.onicecandidate = (iceCandidate) => {
         const event = JSON.stringify({
@@ -207,14 +209,15 @@ function Room() {
             await handleCreateOffer(pc);
             break;
           case "createAnswer":
-            console.log("createAnswer event");
+            console.log("createAnswer event start: ", Date.now());
             await handleCreateAnswer(data.sdp);
+            console.log("createAnswer event end: ", Date.now());
             break;
           case "iceCandidate":
             if (pc.remoteDescription) await pc.addIceCandidate(data.candidate);
             break;
           case "answerCreated":
-            console.log("Answer created event");
+            console.log("Answer created event", data.sdp);
             await pc.setRemoteDescription(data.sdp);
             break;
         }
