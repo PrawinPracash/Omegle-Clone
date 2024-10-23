@@ -195,7 +195,7 @@ function Room() {
           type: "userLeft",
         })
       );
-      pc.close();
+      pc.close(); // close peer connection
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
